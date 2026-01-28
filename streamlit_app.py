@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timedelta
 from streamlit_gsheets import GSheetsConnection
 
-st.set_page_config(page_title="Gestor Ventas Lola v33", layout="wide")
+st.set_page_config(page_title="Gestor Ventas Lola v34", layout="wide")
 
 st.title("🚀 Control de Ventas - Lola")
 
@@ -27,13 +27,20 @@ rango_actual = f"{inicio_semana.strftime('%d/%m/%y')} al {fin_semana.strftime('%
 with st.sidebar:
     st.header("📝 Nuevo Registro")
     nombre_prod = st.text_input("PRODUCTO")
-    vendedoras = ["Fer", "Dany", "Barby", "Marta", "Eriberto", "Elena", "Julio", "Jaz", "Eli", "Viri", "Kari"]
-    vendedora_sel = st.selectbox("VENDEDORA", vendedoras)
+    
+    # --- VENDEDORAS CON OPCIÓN NUEVA ---
+    lista_vendedoras = ["Fer", "Dany", "Barby", "Marta", "Eriberto", "Elena", "Julio", "Jaz", "Eli", "Viri", "Kari", "NUEVA"]
+    vendedora_sel = st.selectbox("VENDEDORA", lista_vendedoras)
+    
+    if vendedora_sel == "NUEVA":
+        vendedora_final = st.text_input("Nombre de la nueva vendedora:")
+    else:
+        vendedora_final = vendedora_sel
+        
     compradora = st.text_input("COMPRADORA")
     
     usd_bruto_txt = st.text_input("COSTO USD", placeholder="Ej: 24")
     venta_txt = st.text_input("PRECIO DE VENTA (MXN)", placeholder="Ej: 1500")
-    recibido_ini_txt = st.text_input("MONTO RECIBIDO INICIAL (MXN)", value="0")
 
     def limpiar_num(t):
         if not t: return 0.0
@@ -42,8 +49,15 @@ with st.sidebar:
 
     usd_bruto = limpiar_num(usd_bruto_txt)
     precio_venta = limpiar_num(venta_txt)
+    
+    # --- SUGERENCIA DE 50% ---
+    if precio_venta > 0:
+        st.caption(f"💡 **Sugerir pago (50%):** ${precio_venta/2:,.2f}")
+    
+    recibido_ini_txt = st.text_input("MONTO RECIBIDO INICIAL (MXN)", value="0")
     monto_rec_ini = limpiar_num(recibido_ini_txt)
 
+    # Cálculos
     costo_tot_mxn = usd_bruto * 27.40
     comi_mxn = usd_bruto * 7.40
     ganancia_mxn = precio_venta - costo_tot_mxn
@@ -84,10 +98,10 @@ with st.sidebar:
 
 # --- LÓGICA DE GUARDADO ---
 if btn_guardar:
-    if nombre_prod and usd_bruto > 0:
+    if nombre_prod and usd_bruto > 0 and vendedora_final:
         nuevo = pd.DataFrame([{
             "FECHA_REGISTRO": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "PRODUCTO": nombre_prod, "VENDEDORA": vendedora_sel, "COMPRADORA": compradora,
+            "PRODUCTO": nombre_prod, "VENDEDORA": vendedora_final, "COMPRADORA": compradora,
             "COSTO_USD": usd_bruto, "COMISION_PAGADA_MXN": comi_mxn, "COSTO_TOTAL_MXN": costo_tot_mxn,
             "PRECIO_VENTA": precio_venta, "GANANCIA_MXN": ganancia_mxn, "RANGO_SEMANA": rango_actual,
             "ESTADO_PAGO": estado_ini, "MONTO_RECIBIDO": monto_rec_ini
@@ -95,6 +109,8 @@ if btn_guardar:
         conn.update(data=pd.concat([df_nube, nuevo], ignore_index=True))
         st.cache_data.clear()
         st.rerun()
+    else:
+        st.sidebar.warning("Faltan datos (Producto, Costo o Vendedora)")
 
 # --- HISTORIAL Y COBRANZA ---
 st.subheader("📋 Historial y Cobranza")
@@ -110,7 +126,7 @@ if not df_nube.empty:
             "PENDIENTE": st.column_config.NumberColumn("POR COBRAR", format="$%.2f")
         },
         disabled=[c for c in df_visual.columns if c not in ["ESTADO_PAGO", "MONTO_RECIBIDO"]],
-        use_container_width=True, key="ed_v33"
+        use_container_width=True, key="ed_v34"
     )
 
     if st.button("💾 ACTUALIZAR PAGOS"):
@@ -127,11 +143,10 @@ st.divider()
 st.subheader("📊 Reportes y Resúmenes")
 if not df_nube.empty:
     semanas = df_nube["RANGO_SEMANA"].unique().tolist()
-    
     c_sel, b_sel, b_act = st.columns([2, 1, 1])
     with c_sel: sem_sel = st.selectbox("Elegir semana:", semanas, label_visibility="collapsed")
     with b_sel: btn_ver_sel = st.button("📊 VISUALIZAR SEMANA ELEGIDA", use_container_width=True)
-    with b_act: btn_ver_act = st.button("🌟 VISUALIZAR SEMANA ACTUAL", type="secondary", use_container_width=True)
+    with b_act: btn_ver_act = st.button("🌟 VISUALIZAR SEMANA ACTUAL", use_container_width=True)
 
     def mostrar_reporte(df_f, titulo):
         st.markdown(f"### 📈 Reporte: {titulo}")
