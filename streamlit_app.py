@@ -52,7 +52,7 @@ with st.sidebar:
     
     # --- SUGERENCIA DE 50% ---
     if precio_venta > 0:
-        st.caption(f"💡 **Sugerir pago (50%):** ${precio_venta/2:,.2f}")
+        st.caption(f"💡 **Sugerir monto recibido(50%):** ${precio_venta/2:,.2f}")
     
     recibido_ini_txt = st.text_input("MONTO RECIBIDO INICIAL (MXN)", value="0")
     monto_rec_ini = limpiar_num(recibido_ini_txt)
